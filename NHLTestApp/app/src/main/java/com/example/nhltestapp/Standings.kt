@@ -1,6 +1,7 @@
 package com.example.nhltestapp
 
-class Standings(gp: Int, w: Int, l: Int, ot: Int, rw: Int, row: Int){
+class Standings(rk: Int, gp: Int, w: Int, l: Int, ot: Int, rw: Int, row: Int){
+    var rank: Int
     var gamesPlayed: Int
     var wins: Int
     var losses: Int
@@ -12,6 +13,7 @@ class Standings(gp: Int, w: Int, l: Int, ot: Int, rw: Int, row: Int){
 
 
     init {
+        rank = rk
         gamesPlayed = gp
         wins = w
         losses = l
