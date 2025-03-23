@@ -47,6 +47,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.graphics.component1
+import androidx.core.graphics.component2
 import com.example.nhltestapp.R.string.league_header
 import com.example.nhltestapp.R.string.standings_header
 import com.example.nhltestapp.ui.theme.NHLTestAppTheme
@@ -102,11 +104,7 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    fun StandingsTableShell(teams: List<Team>) {
-        val tableData = (1..32).mapIndexed { index, _ ->
-            index + 1 to "Item $index"
-        }
-
+    fun StandingsTableShell(teams: List<Pair<Int, Team>>) {
         val column1Weight = .3f
         val column2Weight = .7f
 
@@ -123,23 +121,23 @@ class MainActivity : ComponentActivity() {
                }
             }
 
-           items(tableData) {
+           items(teams) {
                val (rank, teamData) = it
                Row(
                    Modifier.fillMaxWidth().background(Color.Black)
                ) {
                    TableCell(text = rank.toString(), weight = column1Weight, isBold = false)
-                   TableCell(text = teamData, weight= column2Weight, isBold = false)
+                   TableCell(text = teamData.name, weight= column2Weight, isBold = false)
                }
            }
         }
     }
 
-    private fun createTeams(): List<Team> {
-        val teamsList = mutableListOf<Team>()
+    private fun createTeams(): List<Pair<Int, Team>> {
+        val teamsList = mutableListOf<Pair<Int, Team>>()
 
         for (i in 0 until 32) {
-            teamsList += (Team(
+            val team = Team(
                 R.drawable.bos_light,
                 "Boston Bruins",
                 Standings(
@@ -151,7 +149,9 @@ class MainActivity : ComponentActivity() {
                     23,
                     30
                 )
-            ))
+            )
+
+            teamsList += Pair(team.standings.rank, team)
         }
 
         return teamsList
