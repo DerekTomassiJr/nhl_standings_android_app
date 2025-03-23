@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -65,7 +66,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             // Standings Header
             Column (
-                Modifier.background(Color.Black)
+                Modifier.background(Color.Black).fillMaxSize()
             ) {
                 Row {
                     Text(
@@ -74,7 +75,7 @@ class MainActivity : ComponentActivity() {
                         style = MaterialTheme.typography.titleLarge,
                         fontSize = 28.sp,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(8.dp).padding(8.dp)
+                        modifier = Modifier.padding(0.dp, 8.dp, 0.dp, 8.dp).padding(0.dp, 8.dp, 0.dp, 8.dp)
                     )
                 }
                 Row {
@@ -89,7 +90,7 @@ class MainActivity : ComponentActivity() {
     fun RowScope.TableCell(
         text: String,
         weight: Float,
-        isBold: Boolean
+        isBold: Boolean = false
     ) {
         Text(
             text = text,
@@ -99,35 +100,49 @@ class MainActivity : ComponentActivity() {
             modifier = Modifier
                 .border(1.dp, Color.Black)
                 .weight(weight)
-                .padding(8.dp)
+                .padding(1.dp, 8.dp, 1.dp, 8.dp)
         )
     }
 
     @Composable
     fun StandingsTableShell(teams: List<Pair<Int, Team>>) {
-        val column1Weight = .3f
-        val column2Weight = .7f
+        val column1Weight = .35f
+        val column2Weight = .65f
 
         LazyColumn(
-            Modifier.fillMaxSize().padding(16.dp)
+            modifier = Modifier.fillMaxHeight().fillMaxWidth(.3f)
         ) {
-            // Table Header
+            // Table Shell Header
             item {
                Row(
                    Modifier.background(Color.Black)
                ) {
                    TableCell(text = getString(league_header), weight = column1Weight, isBold = true)
-                   TableCell(text = "Column 2", weight = column2Weight, isBold = true)
+                   //TableCell(text = "Column 2", weight = column2Weight, isBold = true)
                }
             }
 
+           // Table Shell Content: Includes rank, image, and abbreviation
            items(teams) {
                val (rank, teamData) = it
                Row(
                    Modifier.fillMaxWidth().background(Color.Black)
                ) {
-                   TableCell(text = rank.toString(), weight = column1Weight, isBold = false)
-                   TableCell(text = teamData.name, weight= column2Weight, isBold = false)
+                   // Rank
+                   TableCell(text = rank.toString(), weight = .1f)
+                   // Team Logo
+                   Image(
+                       painter = painterResource(id = teamData.logoID),
+                       contentDescription = "${teamData.name} Logo",
+                       modifier = Modifier
+                           .border(1.dp, Color.Black)
+                           .weight(.1f)
+                           .padding(1.dp, 8.dp, 1.dp, 8.dp)
+                   )
+                   // Team Abbreviation
+                   TableCell(text = teamData.abbreviation, weight = .15f)
+
+                   //TableCell(text = teamData.name, weight= column2Weight, isBold = true)
                }
            }
         }
@@ -140,6 +155,7 @@ class MainActivity : ComponentActivity() {
             val team = Team(
                 R.drawable.bos_light,
                 "Boston Bruins",
+                "BOS",
                 Standings(
                     i + 1,
                     69,
