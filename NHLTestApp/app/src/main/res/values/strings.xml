@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">NHL Test App</string>
+    <string name="standings_header">Standings</string>
+    <string name="league_header">League</string>
 </resources>

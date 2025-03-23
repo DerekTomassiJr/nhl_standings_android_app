@@ -8,6 +8,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -31,6 +33,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.material3.Card
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -38,9 +41,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.nhltestapp.R.string.league_header
+import com.example.nhltestapp.R.string.standings_header
 import com.example.nhltestapp.ui.theme.NHLTestAppTheme
 import org.json.JSONObject
 
@@ -53,109 +61,77 @@ class MainActivity : ComponentActivity() {
         val teams = createTeams()
 
         setContent {
-            NHLTestAppTheme {
-                LazyColumn (
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    items(teams) {
-                        FlowRow {
-                            StandingsTable(it)
-                        }
-                    }
+            // Standings Header
+            Column (
+                Modifier.background(Color.Black)
+            ) {
+                Row {
+                    Text(
+                        text = getString(standings_header),
+                        color = Color.White,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(8.dp).padding(8.dp)
+                    )
+                }
+                Row {
+                    // Standings Table
+                    StandingsTableShell(teams)
                 }
             }
         }
     }
 
     @Composable
-    fun StandingsTable(team: Team) {
-        Box (
-            modifier = Modifier.fillMaxSize()
+    fun RowScope.TableCell(
+        text: String,
+        weight: Float,
+        isBold: Boolean
+    ) {
+        Text(
+            text = text,
+            color = Color.White,
+            fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal,
+            fontSize = 16.sp,
+            modifier = Modifier
+                .border(1.dp, Color.Black)
+                .weight(weight)
+                .padding(8.dp)
+        )
+    }
+
+    @Composable
+    fun StandingsTableShell(teams: List<Team>) {
+        val tableData = (1..32).mapIndexed { index, _ ->
+            index + 1 to "Item $index"
+        }
+
+        val column1Weight = .3f
+        val column2Weight = .7f
+
+        LazyColumn(
+            Modifier.fillMaxSize().padding(16.dp)
         ) {
-            BoxWithConstraints (
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Card(
-                    modifier = Modifier.fillMaxSize().padding(12.dp).width(maxWidth),
-                    shape = CutCornerShape(8.dp, 8.dp, 8.dp, 8.dp)
-                ) {
-                    Row(
-                        Modifier.background(Color.White).horizontalScroll(rememberScrollState()),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(
-                                text = team.standings.rank.toString(),
-                                modifier = Modifier.padding(10.dp).width(10.dp),
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                        Column {
-                            Image(
-                                painter = painterResource(id = team.logoID),
-                                contentDescription = "Hockey Logo",
-                                modifier = Modifier.width(50.dp).height(50.dp)
-                            )
-                        }
-                        Column {
-                            Text(
-                                text = team.name,
-                                modifier = Modifier.padding(5.dp),
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                        Column {
-                            Text(
-                                text = team.standings.wins.toString(),
-                                modifier = Modifier.padding(5.dp),
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                        Column {
-                            Text(
-                                text = team.standings.losses.toString(),
-                                modifier = Modifier.padding(5.dp),
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                        Column {
-                            Text(
-                                text = team.standings.overtimeLosses.toString(),
-                                modifier = Modifier.padding(5.dp),
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                        Column {
-                            Text(
-                                text = team.standings.points.toString(),
-                                modifier = Modifier.padding(5.dp),
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                        Column {
-                            Text(
-                                text = team.standings.pointsPercentage.toString(),
-                                modifier = Modifier.padding(5.dp),
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                        Column {
-                            Text(
-                                text = team.standings.regulationWins.toString(),
-                                modifier = Modifier.padding(5.dp),
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                        Column {
-                            Text(
-                                text = team.standings.regulationOvertimeWins.toString(),
-                                modifier = Modifier.padding(5.dp),
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                    }
-                }
+            // Table Header
+            item {
+               Row(
+                   Modifier.background(Color.Black)
+               ) {
+                   TableCell(text = getString(league_header), weight = column1Weight, isBold = true)
+                   TableCell(text = "Column 2", weight = column2Weight, isBold = true)
+               }
             }
+
+           items(tableData) {
+               val (rank, teamData) = it
+               Row(
+                   Modifier.fillMaxWidth().background(Color.Black)
+               ) {
+                   TableCell(text = rank.toString(), weight = column1Weight, isBold = false)
+                   TableCell(text = teamData, weight= column2Weight, isBold = false)
+               }
+           }
         }
     }
 
@@ -179,90 +155,5 @@ class MainActivity : ComponentActivity() {
         }
 
         return teamsList
-    }
-
-    @Composable
-    private fun StandingsHeader() {
-        Box (
-            modifier = Modifier.fillMaxSize()
-        ) {
-            BoxWithConstraints (
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Card(
-                    modifier = Modifier.fillMaxSize().padding(12.dp).width(maxWidth),
-                    shape = CutCornerShape(8.dp, 8.dp, 8.dp, 8.dp)
-                ) {
-                    Row(
-                        Modifier.background(Color.White).horizontalScroll(rememberScrollState()),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(
-                                text = "League",
-                                modifier = Modifier.padding(5.dp),
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                        Column {
-                            Text(
-                                text = "Team",
-                                modifier = Modifier.padding(5.dp),
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                        Column {
-                            Text(
-                                text = "W",
-                                modifier = Modifier.padding(5.dp),
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                        Column {
-                            Text(
-                                text = "L",
-                                modifier = Modifier.padding(5.dp),
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                        Column {
-                            Text(
-                                text = "OT",
-                                modifier = Modifier.padding(5.dp),
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                        Column {
-                            Text(
-                                text = "PTS",
-                                modifier = Modifier.padding(5.dp),
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                        Column {
-                            Text(
-                                text = "P%",
-                                modifier = Modifier.padding(5.dp),
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                        Column {
-                            Text(
-                                text = "RW",
-                                modifier = Modifier.padding(5.dp),
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                        Column {
-                            Text(
-                                text = "ROW",
-                                modifier = Modifier.padding(5.dp),
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                    }
-                }
-            }
-        }
     }
 }
