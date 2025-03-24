@@ -7,8 +7,10 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,6 +35,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CutCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -50,10 +53,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.component1
 import androidx.core.graphics.component2
-import com.example.nhltestapp.R.string.league_header
-import com.example.nhltestapp.R.string.standings_header
+import com.example.nhltestapp.R.string
+import com.example.nhltestapp.R.string.*
 import com.example.nhltestapp.ui.theme.NHLTestAppTheme
 import org.json.JSONObject
+import java.time.format.TextStyle
 
 class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalLayoutApi::class)
@@ -66,7 +70,9 @@ class MainActivity : ComponentActivity() {
         setContent {
             // Standings Header
             Column (
-                Modifier.background(Color.Black).fillMaxSize()
+                modifier = Modifier
+                    .background(Color.Black)
+                    .fillMaxSize()
             ) {
                 Row {
                     Text(
@@ -81,6 +87,7 @@ class MainActivity : ComponentActivity() {
                 Row {
                     // Standings Table
                     StandingsTableShell(teams)
+                    StandingsTableStats(teams)
                 }
             }
         }
@@ -88,17 +95,35 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     fun RowScope.TableCell(
+        imageID: Int,
+        logoName: String,
+        weight: Float,
+    ) {
+        Image(
+            painter = painterResource(id = imageID),
+            contentDescription = "${logoName} Logo",
+            modifier = Modifier
+                .border(0.dp, Color.Black)
+                .weight(weight)
+                .padding(1.dp, 8.dp, 1.dp, 8.dp)
+        )
+    }
+
+    @Composable
+    fun RowScope.TableCell(
         text: String,
         weight: Float,
-        isBold: Boolean = false
+        isBold: Boolean = false,
+        isTextCenter: Boolean = true
     ) {
         Text(
             text = text,
             color = Color.White,
             fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal,
             fontSize = 16.sp,
+            textAlign = if (isTextCenter) TextAlign.Center else TextAlign.Left,
             modifier = Modifier
-                .border(1.dp, Color.Black)
+                .border(0.dp, Color.Black)
                 .weight(weight)
                 .padding(1.dp, 8.dp, 1.dp, 8.dp)
         )
@@ -107,18 +132,17 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun StandingsTableShell(teams: List<Pair<Int, Team>>) {
         val column1Weight = .35f
-        val column2Weight = .65f
+        var columnCounter = 1
 
         LazyColumn(
-            modifier = Modifier.fillMaxHeight().fillMaxWidth(.3f)
+            modifier = Modifier.fillMaxHeight().fillMaxWidth(.35f)
         ) {
             // Table Shell Header
             item {
                Row(
                    Modifier.background(Color.Black)
                ) {
-                   TableCell(text = getString(league_header), weight = column1Weight, isBold = true)
-                   //TableCell(text = "Column 2", weight = column2Weight, isBold = true)
+                   TableCell(text = getString(league_header), weight = column1Weight, isBold = true, isTextCenter = false)
                }
             }
 
@@ -126,25 +150,87 @@ class MainActivity : ComponentActivity() {
            items(teams) {
                val (rank, teamData) = it
                Row(
-                   Modifier.fillMaxWidth().background(Color.Black)
+                   Modifier
+                       .fillMaxWidth()
+                       .background(if (columnCounter % 2 == 0) Color.Black else Color.DarkGray)
+                       .fillMaxHeight()
                ) {
                    // Rank
-                   TableCell(text = rank.toString(), weight = .1f)
-                   // Team Logo
-                   Image(
-                       painter = painterResource(id = teamData.logoID),
-                       contentDescription = "${teamData.name} Logo",
-                       modifier = Modifier
-                           .border(1.dp, Color.Black)
-                           .weight(.1f)
-                           .padding(1.dp, 8.dp, 1.dp, 8.dp)
-                   )
-                   // Team Abbreviation
-                   TableCell(text = teamData.abbreviation, weight = .15f)
+                   TableCell(text = rank.toString(), weight = .1f, isTextCenter = false)
 
-                   //TableCell(text = teamData.name, weight= column2Weight, isBold = true)
+                   // Team Logo
+                   //TableCell(imageID = teamData.logoID, logoName = teamData.name, weight = .1f)
+
+                   // Team Abbreviation
+                   TableCell(text = teamData.abbreviation, weight = .15f, isTextCenter = false)
+
+                   columnCounter++
                }
            }
+        }
+    }
+
+    @Composable
+    private fun StandingsTableStats(teams: List<Pair<Int, Team>>) {
+        val columnWeight = .1f
+        var columnCounter = 1
+
+        LazyColumn(
+            modifier = Modifier.fillMaxHeight().fillMaxWidth()
+        ) {
+            // Table Stats Header
+            item {
+                Row(
+                    Modifier
+                        .background(Color.Black)
+                ) {
+                    TableCell(text = getString(games_played_header), weight = columnWeight, isBold = true)
+                    TableCell(text = getString(wins_header), weight = columnWeight, isBold = true)
+                    TableCell(text = getString(losses_header), weight = columnWeight, isBold = true)
+                    TableCell(text = getString(overtime_losses_header), weight = columnWeight, isBold = true)
+                    TableCell(text = getString(points_header), weight = columnWeight + 0.05f, isBold = true)
+                    TableCell(text = getString(points_percentage_header), weight = columnWeight, isBold = true)
+                    TableCell(text = getString(regulation_wins_header), weight = columnWeight, isBold = true)
+                    TableCell(text = getString(regulation_plus_overtime_wins_header), weight = columnWeight + 0.05f, isBold = true)
+                }
+            }
+
+            // Table Stats Content: Includes gp, w, l, ot, pts, p%, rw, row
+            items(teams) {
+                val (rank, teamData) = it
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .background(if (columnCounter % 2 == 0) Color.Black else Color.DarkGray)
+                        .fillMaxHeight()
+                ) {
+                    // Games Played
+                    TableCell(text = teamData.standings.wins.toString(), weight = columnWeight)
+
+                    // Wins
+                    TableCell(text = teamData.standings.wins.toString(), weight = columnWeight)
+
+                    // Losses
+                    TableCell(text = teamData.standings.losses.toString(), weight = columnWeight)
+
+                    // Overtime Losses
+                    TableCell(text = teamData.standings.overtimeLosses.toString(), weight = columnWeight)
+
+                    // Points
+                    TableCell(text = teamData.standings.points.toString(), weight = columnWeight, isBold = true)
+
+                    // Point Percentage
+                    TableCell(text = teamData.standings.pointsPercentage.toString(), weight = columnWeight)
+
+                    // Regulation Wins
+                    TableCell(text = teamData.standings.regulationWins.toString(), weight = columnWeight)
+
+                    // Regulation Wins + Overtime Wins
+                    TableCell(text = teamData.standings.regulationOvertimeWins.toString(), weight = columnWeight)
+
+                    columnCounter++
+                }
+            }
         }
     }
 

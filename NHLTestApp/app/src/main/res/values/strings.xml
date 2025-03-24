@@ -2,4 +2,12 @@
     <string name="app_name">NHL Test App</string>
     <string name="standings_header">Standings</string>
     <string name="league_header">League</string>
+    <string name="games_played_header">GP</string>
+    <string name="wins_header">W</string>
+    <string name="losses_header">L</string>
+    <string name="overtime_losses_header">OT</string>
+    <string name="points_header">PTS</string>
+    <string name="points_percentage_header">P%</string>
+    <string name="regulation_wins_header">RW</string>
+    <string name="regulation_plus_overtime_wins_header">ROW</string>
 </resources>
