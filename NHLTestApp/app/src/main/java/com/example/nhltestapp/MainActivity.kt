@@ -1,12 +1,12 @@
-@file:Suppress("DEPRECATION")
-
 package com.example.nhltestapp
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.media.Image
 import android.os.Build
 import android.os.Bundle
 import android.util.JsonReader
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -46,6 +46,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -74,6 +78,7 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -89,8 +94,8 @@ import java.time.format.TextStyle
 import kotlin.coroutines.Continuation
 
 class MainActivity : ComponentActivity() {
-    private var instanceState: Bundle? = null
-    private var standingData: List<Pair<Int, Team>> = mutableListOf()
+    //private var standingData: List<Pair<Int, Team>> = mutableListOf()
+    private val scope = CoroutineScope(Dispatchers.Main + Job())
 
     @RequiresApi(Build.VERSION_CODES.O)
     @OptIn(ExperimentalLayoutApi::class, DelicateCoroutinesApi::class)
@@ -98,37 +103,51 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        instanceState = savedInstanceState
+        setContent {
+            MainScreen()
+        }
+    }
 
-        lifecycleScope.launch(Dispatchers.IO) {
-            getStandings()
+    @RequiresApi(Build.VERSION_CODES.O)
+    @SuppressLint("CoroutineCreationDuringComposition")
+    @Composable
+    fun MainScreen() {
+        var standingData by remember { mutableStateOf<List<Pair<Int, Team>>?>(null) }
+
+        // Start the data fetching asynchronously
+        scope.launch {
+            // Wait for the getStandings() to finish
+            standingData = getStandings()  // Assuming getStandings is a suspend function
+
+            // After getting the data, show a toast
+            Toast.makeText(this@MainActivity, "Data Loaded Successfully!", Toast.LENGTH_SHORT)
+                .show()
         }
 
-
-        setContent {
-            // Standings Header
-            Column (
-                modifier = Modifier
-                    .background(Color.Black)
-                    .fillMaxSize()
-            ) {
-                Row {
-                    Text(
-                        text = getString(standings_header),
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontSize = 28.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(0.dp, 8.dp, 0.dp, 8.dp).padding(0.dp, 8.dp, 0.dp, 8.dp)
-                    )
-                }
-                Row {
-                    // Standings Table
-                    StandingsTableShell(standingData)
-                    StandingsTableStats(standingData)
-                }
+        // After getting the data, update the UI
+        // Standings Header
+        Column(
+            modifier = Modifier
+                .background(Color.Black)
+                .fillMaxSize()
+        ) {
+            Row {
+                Text(
+                    text = getString(standings_header),
+                    color = Color.White,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            }
+            Row {
+                // Standings Table
+                standingData?.let { StandingsTableShell(it) }
+                standingData?.let { StandingsTableStats(it) }
             }
         }
+
     }
 
     @Composable
@@ -274,25 +293,25 @@ class MainActivity : ComponentActivity() {
 
     @RequiresApi(Build.VERSION_CODES.O)
     private suspend fun getStandings(): List<Pair<Int, Team>> {
-            var teams: List<Pair<Int, Team>> = mutableListOf()
+        var teams: List<Pair<Int, Team>> = mutableListOf()
 
-            val currentDate = LocalDate.now()
-            val apiURL: String = "https://api-web.nhle.com/v1/standings/${currentDate.toString()}"
-            //val queue = Volley.newRequestQueue(this)
+        val currentDate = LocalDate.now()
+        val apiURL: String = "https://api-web.nhle.com/v1/standings/${currentDate.toString()}"
+        val queue = Volley.newRequestQueue(this)
 
-            val jsonObjectRequest = JsonObjectRequest(
-                Request.Method.GET,
-                apiURL,
-                null,
-                { response ->
-                    teams = createTeams(response)
-                },
-                { error ->
-                    error.printStackTrace()
-                }
-            )
+        val jsonObjectRequest = JsonObjectRequest(
+            Request.Method.GET,
+            apiURL,
+            null,
+            { response ->
+                teams = createTeams(response)
+            },
+            { error ->
+                error.printStackTrace()
+            }
+        )
+        queue.add(jsonObjectRequest)
 
-            //queue.add(jsonObjectRequest)
         return teams
     }
 
