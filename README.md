@@ -8,4 +8,5 @@ Currently app has bugs as this was demo to try and make an android from scratch 
 
 Some bugs that will addressed soon:
 - Scrolling between Team Table and Standings Table is not locked together
+- Games Playes and Points Percentage Stats are not currently accurate
 - Seeing crashing after x amount of time
