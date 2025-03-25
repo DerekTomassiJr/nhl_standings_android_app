@@ -1,11 +1,16 @@
+@file:Suppress("DEPRECATION")
+
 package com.example.nhltestapp
 
 import android.content.Context
 import android.media.Image
+import android.os.Build
 import android.os.Bundle
+import android.util.JsonReader
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
@@ -53,19 +58,52 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.component1
 import androidx.core.graphics.component2
+import androidx.lifecycle.lifecycleScope
+import com.android.volley.Request
+import com.android.volley.Response
+import com.android.volley.Response.Listener
+import com.android.volley.toolbox.JsonObjectRequest
+import com.android.volley.toolbox.Volley
 import com.example.nhltestapp.R.string
 import com.example.nhltestapp.R.string.*
 import com.example.nhltestapp.ui.theme.NHLTestAppTheme
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
+import org.json.JSONArray
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 import org.json.JSONObject
+import java.net.HttpURLConnection
+import java.net.URI
+import java.net.URL
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
+import kotlin.coroutines.Continuation
 
 class MainActivity : ComponentActivity() {
-    @OptIn(ExperimentalLayoutApi::class)
+    private var instanceState: Bundle? = null
+    private var standingData: List<Pair<Int, Team>> = mutableListOf()
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    @OptIn(ExperimentalLayoutApi::class, DelicateCoroutinesApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        val teams = createTeams()
+        instanceState = savedInstanceState
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            getStandings()
+        }
+
 
         setContent {
             // Standings Header
@@ -86,8 +124,8 @@ class MainActivity : ComponentActivity() {
                 }
                 Row {
                     // Standings Table
-                    StandingsTableShell(teams)
-                    StandingsTableStats(teams)
+                    StandingsTableShell(standingData)
+                    StandingsTableStats(standingData)
                 }
             }
         }
@@ -234,26 +272,50 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun createTeams(): List<Pair<Int, Team>> {
-        val teamsList = mutableListOf<Pair<Int, Team>>()
+    @RequiresApi(Build.VERSION_CODES.O)
+    private suspend fun getStandings(): List<Pair<Int, Team>> {
+            var teams: List<Pair<Int, Team>> = mutableListOf()
 
-        for (i in 0 until 32) {
-            val team = Team(
-                R.drawable.bos_light,
-                "Boston Bruins",
-                "BOS",
-                Standings(
-                    i + 1,
-                    69,
-                    30,
-                    30,
-                    9,
-                    23,
-                    30
-                )
+            val currentDate = LocalDate.now()
+            val apiURL: String = "https://api-web.nhle.com/v1/standings/${currentDate.toString()}"
+            //val queue = Volley.newRequestQueue(this)
+
+            val jsonObjectRequest = JsonObjectRequest(
+                Request.Method.GET,
+                apiURL,
+                null,
+                { response ->
+                    teams = createTeams(response)
+                },
+                { error ->
+                    error.printStackTrace()
+                }
             )
 
-            teamsList += Pair(team.standings.rank, team)
+            //queue.add(jsonObjectRequest)
+        return teams
+    }
+
+    private fun createTeams(response: JSONObject): List<Pair<Int,Team>> {
+        val teamsList = mutableListOf<Pair<Int, Team>>()
+
+        val teams: JSONArray = response.getJSONArray("standings")
+        for (i in 0 until teams.length()) {
+            val team: JSONObject = teams.getJSONObject(i)
+            val teamData = Team(
+                R.drawable.bos_light,
+                team.getJSONObject("teamName").getString("default"),
+                team.getJSONObject("teamAbbrev").getString("default"),
+                Standings(
+                    team.getInt("leagueSequence"),
+                    team.getInt("gamesPlayed"),
+                    team.getInt("wins"),
+                    team.getInt("losses"),
+                    team.getInt("otLosses"),
+                    team.getInt("regulationWins"),
+                    team.getInt("regulationPlusOtWins")
+                ))
+            teamsList += Pair(teamData.standings.rank, teamData)
         }
 
         return teamsList

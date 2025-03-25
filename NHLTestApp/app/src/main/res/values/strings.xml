@@ -1,4 +1,4 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">NHL Test App</string>
     <string name="standings_header">Standings</string>
     <string name="league_header">League</string>
@@ -10,4 +10,5 @@
     <string name="points_percentage_header">P%</string>
     <string name="regulation_wins_header">RW</string>
     <string name="regulation_plus_overtime_wins_header">ROW</string>
+    <string name="standings_url" tools:ignore="TypographyDashes">https://api-web.nhle.com/v1/standings/</string>
 </resources>
