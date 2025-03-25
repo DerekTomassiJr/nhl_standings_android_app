@@ -1,97 +1,54 @@
 package com.example.nhltestapp
 
 import android.annotation.SuppressLint
-import android.content.Context
-import android.media.Image
 import android.os.Build
 import android.os.Bundle
-import android.util.JsonReader
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.gestures.scrollable
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CutCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.graphics.component1
-import androidx.core.graphics.component2
-import androidx.lifecycle.lifecycleScope
+import com.android.volley.DefaultRetryPolicy
 import com.android.volley.Request
 import com.android.volley.Response
-import com.android.volley.Response.Listener
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
-import com.example.nhltestapp.R.string
 import com.example.nhltestapp.R.string.*
-import com.example.nhltestapp.ui.theme.NHLTestAppTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlinx.coroutines.withContext
 import org.json.JSONArray
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 import org.json.JSONObject
-import java.net.HttpURLConnection
-import java.net.URI
-import java.net.URL
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.time.format.TextStyle
-import kotlin.coroutines.Continuation
 
 class MainActivity : ComponentActivity() {
     //private var standingData: List<Pair<Int, Team>> = mutableListOf()
@@ -114,18 +71,10 @@ class MainActivity : ComponentActivity() {
     fun MainScreen() {
         var standingData by remember { mutableStateOf<List<Pair<Int, Team>>?>(null) }
 
-        // Start the data fetching asynchronously
-        scope.launch {
-            // Wait for the getStandings() to finish
-            standingData = getStandings()  // Assuming getStandings is a suspend function
-
-            // After getting the data, show a toast
-            Toast.makeText(this@MainActivity, "Data Loaded Successfully!", Toast.LENGTH_SHORT)
-                .show()
+        getStandings(standingData) { response ->
+            standingData = response
         }
 
-        // After getting the data, update the UI
-        // Standings Header
         Column(
             modifier = Modifier
                 .background(Color.Black)
@@ -189,7 +138,6 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun StandingsTableShell(teams: List<Pair<Int, Team>>) {
         val column1Weight = .35f
-        var columnCounter = 1
 
         LazyColumn(
             modifier = Modifier.fillMaxHeight().fillMaxWidth(.35f)
@@ -209,7 +157,7 @@ class MainActivity : ComponentActivity() {
                Row(
                    Modifier
                        .fillMaxWidth()
-                       .background(if (columnCounter % 2 == 0) Color.Black else Color.DarkGray)
+                       .background(Color.Black)
                        .fillMaxHeight()
                ) {
                    // Rank
@@ -220,8 +168,6 @@ class MainActivity : ComponentActivity() {
 
                    // Team Abbreviation
                    TableCell(text = teamData.abbreviation, weight = .15f, isTextCenter = false)
-
-                   columnCounter++
                }
            }
         }
@@ -230,7 +176,6 @@ class MainActivity : ComponentActivity() {
     @Composable
     private fun StandingsTableStats(teams: List<Pair<Int, Team>>) {
         val columnWeight = .1f
-        var columnCounter = 1
 
         LazyColumn(
             modifier = Modifier.fillMaxHeight().fillMaxWidth()
@@ -258,7 +203,7 @@ class MainActivity : ComponentActivity() {
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .background(if (columnCounter % 2 == 0) Color.Black else Color.DarkGray)
+                        .background(Color.Black)
                         .fillMaxHeight()
                 ) {
                     // Games Played
@@ -284,15 +229,17 @@ class MainActivity : ComponentActivity() {
 
                     // Regulation Wins + Overtime Wins
                     TableCell(text = teamData.standings.regulationOvertimeWins.toString(), weight = columnWeight)
-
-                    columnCounter++
                 }
             }
         }
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
-    private suspend fun getStandings(): List<Pair<Int, Team>> {
+    private fun getStandings(standingData: List<Pair<Int,Team>>?, callback: (List<Pair<Int, Team>>) -> Unit) {
+        if (standingData?.size == 0) {
+            return
+        }
+
         var teams: List<Pair<Int, Team>> = mutableListOf()
 
         val currentDate = LocalDate.now()
@@ -303,16 +250,21 @@ class MainActivity : ComponentActivity() {
             Request.Method.GET,
             apiURL,
             null,
-            { response ->
-                teams = createTeams(response)
+            Response.Listener<JSONObject>() { response ->
+                    teams = createTeams(response)
+                    callback(teams)
             },
             { error ->
                 error.printStackTrace()
             }
         )
+        jsonObjectRequest.retryPolicy =
+            DefaultRetryPolicy(
+                0,
+                DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
+            )
         queue.add(jsonObjectRequest)
-
-        return teams
     }
 
     private fun createTeams(response: JSONObject): List<Pair<Int,Team>> {
