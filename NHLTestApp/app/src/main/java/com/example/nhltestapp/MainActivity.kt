@@ -207,7 +207,7 @@ class MainActivity : ComponentActivity() {
                         .fillMaxHeight()
                 ) {
                     // Games Played
-                    TableCell(text = teamData.standings.wins.toString(), weight = columnWeight)
+                    TableCell(text = teamData.standings.gamesPlayed.toString(), weight = columnWeight)
 
                     // Wins
                     TableCell(text = teamData.standings.wins.toString(), weight = columnWeight)
@@ -222,7 +222,7 @@ class MainActivity : ComponentActivity() {
                     TableCell(text = teamData.standings.points.toString(), weight = columnWeight, isBold = true)
 
                     // Point Percentage
-                    TableCell(text = teamData.standings.pointsPercentage.toString(), weight = columnWeight)
+                    TableCell(text = teamData.standings.pointsPercentage.toString(), weight = columnWeight + .05f)
 
                     // Regulation Wins
                     TableCell(text = teamData.standings.regulationWins.toString(), weight = columnWeight)

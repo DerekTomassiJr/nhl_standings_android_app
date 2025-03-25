@@ -1,5 +1,9 @@
 package com.example.nhltestapp
 
+import java.math.RoundingMode
+import java.text.DecimalFormat
+import kotlin.math.round
+
 class Standings(rk: Int, gp: Int, w: Int, l: Int, ot: Int, rw: Int, row: Int){
     var rank: Int
     var gamesPlayed: Int
@@ -14,10 +18,11 @@ class Standings(rk: Int, gp: Int, w: Int, l: Int, ot: Int, rw: Int, row: Int){
 
     init {
         rank = rk
-        gamesPlayed = gp
         wins = w
         losses = l
         overtimeLosses = ot
+
+        gamesPlayed = wins + losses + overtimeLosses
 
         calculatePoints()
 
@@ -25,11 +30,14 @@ class Standings(rk: Int, gp: Int, w: Int, l: Int, ot: Int, rw: Int, row: Int){
         regulationOvertimeWins = row
     }
 
-    fun calculatePoints() {
+    private fun calculatePoints() {
         points = (wins * 2) + overtimeLosses
 
         val totalPossiblePoints = gamesPlayed * 2
-        pointsPercentage = (points / totalPossiblePoints).toDouble()
+        val df = DecimalFormat("#.##")
+        df.roundingMode = RoundingMode.FLOOR
+        val percentage = (points.toDouble() / totalPossiblePoints.toDouble())
+        pointsPercentage = df.format(percentage).toDouble()
     }
 
 }
